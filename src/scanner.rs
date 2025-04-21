@@ -54,8 +54,27 @@ impl Scanner {
             },
             ' ' | '\r' | '\t' => (),
             '\n' => self.line += 1,
+            '"' => self.string(),
             token => error(self.line, format!("Unexpected character: {}", token))
         }
+    }
+
+    fn string(&mut self) {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' { self.line += 1; }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            error(self.line, String::from("Unterminated string."));
+            return;
+        }
+
+        self.advance();
+
+        let value: String = self.source.chars().skip(self.start as usize + 1)
+            .take((self.current - self.start - 2) as usize).collect();
+        self.add_token_with_value(TokenType::String, Some(LiteralValue::String(value)));
     }
 
     fn match_token(&mut self, expected: char) -> bool {
@@ -84,11 +103,12 @@ impl Scanner {
     }
 
     fn add_token(&mut self, token_type: TokenType) {
-        self.push_token(token_type, None);
+        self.add_token_with_value(token_type, None);
     }
 
-    fn push_token(&mut self, token_type: TokenType, literal: Option<LiteralValue>) {
-        let text = &self.source[self.start as usize..self.current as usize];
+    fn add_token_with_value(&mut self, token_type: TokenType, literal: Option<LiteralValue>) {
+        let text: String = self.source.chars().skip(self.start as usize)
+            .take((self.current - self.start) as usize).collect();
         self.tokens.push(Token::new(
             token_type,
             text.to_string(),
