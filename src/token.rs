@@ -1,6 +1,5 @@
-use std::fmt::format;
-
-enum TokenType {
+#[derive(Debug, Clone)]
+pub enum TokenType {
     // Single-character tokens
     LeftParen,
     RightParen,
@@ -51,7 +50,8 @@ enum TokenType {
     Eof
 }
 
-struct Token {
+#[derive(Clone, Debug)]
+pub struct Token {
     token_type: TokenType,
     lexeme: String,
     literal: Option<LiteralValue>,
@@ -59,14 +59,15 @@ struct Token {
 }
 
 // For holding literal values
-enum LiteralValue {
+#[derive(Debug, Clone)]
+pub enum LiteralValue {
     Number(f64),
     String(String),
     Boolean(bool),
 }
 
 impl Token {
-    fn new(token_type: TokenType, lexeme: String, literal: Option<LiteralValue>, line: u32) -> Token {
+    pub fn new(token_type: TokenType, lexeme: String, literal: Option<LiteralValue>, line: u32) -> Token {
         Token {
             token_type,
             lexeme,
@@ -75,7 +76,7 @@ impl Token {
         }
     }
 
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         format!("{:?} {} {:?}", self.token_type, self.lexeme, self.literal)
     }
 }

@@ -1,55 +1,75 @@
-use std::{env, io};
-use std::path::{Path, PathBuf};
+use std::{env, fs, io};
+use std::io::Write;
+use std::process::ExitCode;
+use crate::scanner::Scanner;
 
 mod token;
 mod scanner;
 
-fn main() {
+fn main() -> ExitCode {
     let args: Vec<String> = env::args().collect();
     match args.len() {
-        len if len > 1 => {
-            println!("Usage: rlox [script]");
+        len if len > 2 => {
             return ExitCode::from(64);
         }
-        1 => run_file(args[0]),
-        _ => run_prompt(),
+        2 => {
+            run_file(&args[0]);
+            ExitCode::SUCCESS
+        }
+        _ => {
+            run_prompt();
+            ExitCode::SUCCESS
+        }
     }
 }
 
-fn run_file(path: String) {
-    let path_buf = PathBuf::from(path);
-    let bytes = fs::read(path_buf)?;
-
-    run(String::from_utf8(bytes)?);
+fn run_file(path: &String) {
+    match fs::read_to_string(path) {
+        Ok(content) => run(content),
+        Err(e) => eprintln!("Error reading file: {}", e)
+    }
     // Need some kind of mechanism for returning errors
     // ExitCode::from(65)
 }
 
 fn run_prompt() {
-    while(true) {
-        print("> ");
-        let mut buffer = String::new();
-        let line = io::stdin().read_line(&mut buffer)?;
-        if line.is_none() { break; }
+    loop {
+        print!("> "); io::stdout().flush().unwrap();
+        let mut line = String::new();
+        match io::stdin().read_line(&mut line) {
+            Ok(_) => {
+                if line == "" { break; }
 
-        run(line);
+                run(line);
+            }
+            Err(_) => {
+                println!("Error reading line");
+                break;
+            }
+        }
     }
 }
 
 fn run(source: String) {
-    let scanner = Scanner { source: source };
+    let mut scanner = Scanner { 
+        source: source,
+        tokens: Vec::new(),
+        start: 0,
+        current: 0,
+        line: 1
+    };
     let tokens = scanner.scan_tokens();
 
     for token in tokens {
-        println!(token)
+        println!("{:?}", token)
     }
 }
 
-fn error(line: u32, message: String) {
+pub fn error(line: u32, message: String) {
     report(line, "", message);
 }
 
-fn report(line: u32, location: &str, message: String) {
+pub fn report(line: u32, location: &str, message: String) {
     println!("[line {}] Error{}: {}", line, location, message);
     let had_error = true;
 }
