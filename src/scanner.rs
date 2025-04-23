@@ -55,7 +55,34 @@ impl Scanner {
             ' ' | '\r' | '\t' => (),
             '\n' => self.line += 1,
             '"' => self.string(),
-            token => error(self.line, format!("Unexpected character: {}", token))
+            token => {
+                if self.is_digit(token) {
+                    self.number()
+                } else {
+                    error(self.line, format!("Unexpected character: {}", token))
+                }
+            }
+        }
+    }
+
+    fn number(&mut self) {
+        self.consume_numbers();
+
+        if self.peek() == '.' && self.is_digit(self.peek_next()) {
+            self.advance();
+            self.consume_numbers();
+        }
+
+        let value: String = self.source.chars()
+            .take((self.current - self.start) as usize).collect();
+        let as_double: f64 = value.parse().unwrap();
+        self.add_token_with_value(TokenType::Number, Some(LiteralValue::Number(as_double)));
+    }
+
+    fn consume_numbers(&mut self) {
+        loop {
+            let peek = self.peek();
+            if self.is_digit(peek) { self.advance(); } else { break; }
         }
     }
 
@@ -90,6 +117,15 @@ impl Scanner {
     fn peek(&mut self) -> char {
         if self.is_at_end() { return '\0' }
         return self.source.chars().nth(self.current as usize).unwrap();
+    }
+
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.chars().count().try_into().unwrap() { return '\0' }
+        return self.source.chars().nth((self.current + 1) as usize).unwrap();
+    }
+
+    fn is_digit(&self, c: char) -> bool {
+        return c >= '0' && c <= '9';
     }
 
     fn is_at_end(&mut self) -> bool {
