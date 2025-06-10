@@ -39,7 +39,6 @@ fn run_prompt() {
         match io::stdin().read_line(&mut line) {
             Ok(_) => {
                 if line == "" { break; }
-
                 run(line);
             }
             Err(_) => {
@@ -71,5 +70,5 @@ pub fn error(line: u32, message: String) {
 
 pub fn report(line: u32, location: &str, message: String) {
     println!("[line {}] Error{}: {}", line, location, message);
-    let had_error = true;
+    let _had_error = true;
 }

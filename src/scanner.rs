@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::token::{Token, TokenType, LiteralValue};
 use crate::error;
 
@@ -58,10 +59,28 @@ impl Scanner {
             token => {
                 if self.is_digit(token) {
                     self.number()
-                } else {
+                }  else if self.is_alpha(token) {
+                    self.identifier();
+                }
+                else {
                     error(self.line, format!("Unexpected character: {}", token))
                 }
             }
+        }
+    }
+
+    fn identifier(&mut self) {
+        while self.is_alpha_numeric(self.peek()) { self.advance(); }
+
+        let text: String = self.source.chars()
+            .skip(self.start as usize)
+            .take((self.current - self.start) as usize)
+            .collect();
+        let token_type: Option<TokenType> = self.keywords().get(text.as_str()).cloned();
+
+        match token_type {
+            None => self.add_token(TokenType::Identifier),
+            Some(val) => self.add_token(val),
         }
     }
 
@@ -81,7 +100,7 @@ impl Scanner {
 
     fn consume_numbers(&mut self) {
         loop {
-            let peek = self.peek();
+            let peek: char = self.peek();
             if self.is_digit(peek) { self.advance(); } else { break; }
         }
     }
@@ -114,7 +133,7 @@ impl Scanner {
         return true;
     }
 
-    fn peek(&mut self) -> char {
+    fn peek(&self) -> char {
         if self.is_at_end() { return '\0' }
         return self.source.chars().nth(self.current as usize).unwrap();
     }
@@ -124,18 +143,32 @@ impl Scanner {
         return self.source.chars().nth((self.current + 1) as usize).unwrap();
     }
 
+    fn is_alpha(&self, c: char) -> bool {
+        self.is_alpha_numeric(c) || self.is_digit(c)
+    }
+
+    fn is_alpha_numeric(&self, c: char) -> bool {
+        (c >= 'a' && c <= 'z') ||
+        (c >= 'A' && c <= 'Z') ||
+        c == '_'
+    }
+
     fn is_digit(&self, c: char) -> bool {
         return c >= '0' && c <= '9';
     }
 
-    fn is_at_end(&mut self) -> bool {
+    fn is_at_end(&self) -> bool {
         return self.current >= self.source.len() as u32
     }
 
     fn advance(&mut self) -> char {
-        let c = self.source.chars().nth(self.current as usize).unwrap();
-        self.current += 1;
-        c
+        match self.source.chars().nth(self.current as usize) {
+            None => '\0',
+            Some(c) => {
+                self.current += 1;
+                return c;
+            }
+        }
     }
 
     fn add_token(&mut self, token_type: TokenType) {
@@ -151,5 +184,26 @@ impl Scanner {
             literal,
             self.line
         ));
+    }
+
+    fn keywords(&self) -> HashMap<&str, TokenType> {
+        HashMap::from([
+            ("and", TokenType::And),
+            ("class", TokenType::Class),
+            ("else", TokenType::Else),
+            ("false", TokenType::False),
+            ("for", TokenType::For),
+            ("fun", TokenType::Fun),
+            ("if", TokenType::If),
+            ("nil", TokenType::Nil),
+            ("or", TokenType::Or),
+            ("print", TokenType::Print),
+            ("return", TokenType::Return),
+            ("super", TokenType::Super),
+            ("this", TokenType::This),
+            ("true", TokenType::True),
+            ("var", TokenType::Var),
+            ("while", TokenType::While)
+        ])
     }
 }
